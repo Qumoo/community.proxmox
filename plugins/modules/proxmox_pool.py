@@ -105,6 +105,13 @@ class ProxmoxPoolAnsible(ProxmoxAnsible):
         """
         return True if not self.get_pool(poolid)['members'] else False
 
+    def gather_pool(self):
+        """Gather all existing pools
+
+        :return: All existing pools
+        """
+        return self.proxmox_api.pools.get()
+
     def create_pool(self, poolid, comment=None):
         """Create Proxmox VE pool
 
@@ -147,9 +154,9 @@ class ProxmoxPoolAnsible(ProxmoxAnsible):
 def main():
     module_args = proxmox_auth_argument_spec()
     pools_args = dict(
-        poolid=dict(type="str", aliases=["name"], required=True),
+        poolid=dict(type="str", aliases=["name"], required=False),
         comment=dict(type="str"),
-        state=dict(default="present", choices=["present", "absent"]),
+        state=dict(default="present", choices=["present", "absent", "gathered"]),
     )
 
     module_args.update(pools_args)
@@ -170,6 +177,9 @@ def main():
     if state == "present":
         proxmox.create_pool(poolid, comment)
         module.exit_json(changed=True, poolid=poolid, msg="Pool {0} successfully created".format(poolid))
+    if state == "gathered":
+        pools = proxmox.gather_pool()
+        module.exit_json(changed=False, pools=pools, msg="Pools gathered successfully")
     else:
         proxmox.delete_pool(poolid)
         module.exit_json(changed=True, poolid=poolid, msg="Pool {0} successfully deleted".format(poolid))
