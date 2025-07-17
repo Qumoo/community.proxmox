@@ -107,10 +107,17 @@ class ProxmoxPoolAnsible(ProxmoxAnsible):
 
     def gather_pool(self):
         """Gather all existing pools
+        If the API user is missing 'Pool.Audit' permission it always returns an empty list.
 
         :return: All existing pools
         """
-        return self.proxmox_api.pools.get()
+        try:
+            pools = self.proxmox_api.pools.get()
+            if not pools:
+                self.module.warn("API User may be missing Pool.Audit permission on PVE.")
+            return pools
+        except Exception as e:
+            self.module.fail_json(msg="Unable to retrieve pools: {0}".format(e))
 
     def create_pool(self, poolid, comment=None):
         """Create Proxmox VE pool
